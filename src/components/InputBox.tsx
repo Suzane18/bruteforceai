@@ -1,5 +1,5 @@
 import { useState, KeyboardEvent } from "react";
-import { Send } from "lucide-react";
+import { Send, Sparkles } from "lucide-react";
 
 interface InputBoxProps {
   onSend: (message: string) => void;
@@ -23,9 +23,10 @@ export function InputBox({ onSend, isLoading }: InputBoxProps) {
   };
 
   return (
-    <div className="border-t border-border bg-card px-6 py-4" data-ui-chrome>
-      <div className="max-w-3xl mx-auto flex items-center gap-3">
-        <div className="flex-1 relative">
+    <div className="border-t border-white/10 bg-[hsl(220,30%,8%)] px-6 py-4" data-ui-chrome>
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-2 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/30 transition-all">
+          <Sparkles className="w-4 h-4 text-primary/60 shrink-0" />
           <input
             type="text"
             value={value}
@@ -33,16 +34,19 @@ export function InputBox({ onSend, isLoading }: InputBoxProps) {
             onKeyDown={handleKeyDown}
             placeholder="Ask anything..."
             disabled={isLoading}
-            className="w-full bg-secondary/50 border border-border rounded-lg px-4 py-3 font-mono text-sm outline-none placeholder:text-muted-foreground text-foreground disabled:opacity-50 caret-primary focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+            className="flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-white/30 text-white/90 disabled:opacity-50 caret-primary py-1.5"
           />
+          <button
+            onClick={handleSend}
+            disabled={isLoading || !value.trim()}
+            className="w-9 h-9 flex items-center justify-center bg-primary text-primary-foreground rounded-xl disabled:opacity-20 transition-all hover:opacity-90 active:scale-95 shrink-0"
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
         </div>
-        <button
-          onClick={handleSend}
-          disabled={isLoading || !value.trim()}
-          className="w-11 h-11 flex items-center justify-center bg-primary text-primary-foreground rounded-lg disabled:opacity-30 transition-all hover:opacity-90 active:scale-95"
-        >
-          <Send className="w-4 h-4" />
-        </button>
+        <p className="text-center font-mono text-[10px] text-white/20 mt-2 tracking-wider">
+          Powered by Oblique AI
+        </p>
       </div>
     </div>
   );

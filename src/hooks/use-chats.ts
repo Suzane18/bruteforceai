@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Chat, Message, sendMessage } from "@/lib/gemini";
+import { Chat, Message, streamChat } from "@/lib/gemini";
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -26,6 +26,7 @@ export function useChats() {
 
       const userMsg: Message = { role: "user", content: prompt };
 
+      // Add user message immediately
       setChats((prev) =>
         prev.map((c) =>
           c.id === activeChatId
@@ -39,21 +40,38 @@ export function useChats() {
       );
 
       setIsLoading(true);
-      try {
-        const history = activeChat.messages;
-        const response = await sendMessage(history, prompt);
-        const aiMsg: Message = { role: "ai", content: response };
 
+      // Build messages for the API (convert to assistant/user roles)
+      const apiMessages = [...activeChat.messages, userMsg].map((m) => ({
+        role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+        content: m.content,
+      }));
+
+      let assistantSoFar = "";
+
+      const upsertAssistant = (nextChunk: string) => {
+        assistantSoFar += nextChunk;
         setChats((prev) =>
-          prev.map((c) =>
-            c.id === activeChatId
-              ? { ...c, messages: [...c.messages, userMsg, aiMsg].filter((m, i, arr) => 
-                  // dedupe the userMsg we already added
-                  !(m.role === "user" && m.content === prompt && i < arr.length - 2)
-                )}
-              : c
-          )
+          prev.map((c) => {
+            if (c.id !== activeChatId) return c;
+            const msgs = [...c.messages];
+            const last = msgs[msgs.length - 1];
+            if (last?.role === "ai") {
+              msgs[msgs.length - 1] = { ...last, content: assistantSoFar };
+            } else {
+              msgs.push({ role: "ai", content: assistantSoFar });
+            }
+            return { ...c, messages: msgs };
+          })
         );
+      };
+
+      try {
+        await streamChat({
+          messages: apiMessages,
+          onDelta: (chunk) => upsertAssistant(chunk),
+          onDone: () => setIsLoading(false),
+        });
       } catch (e) {
         const errMsg: Message = {
           role: "ai",
@@ -66,7 +84,6 @@ export function useChats() {
               : c
           )
         );
-      } finally {
         setIsLoading(false);
       }
     },
